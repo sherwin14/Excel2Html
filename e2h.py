@@ -28,17 +28,6 @@ def read_html(html_file):
         json_val.append(tag.attrs)
 
     return json_val
-    # return [x for x in j if x['description'] == description]
-    # if 'Unnamed: 12' in excel_file_data.head():
-    # new_href = excel_file_data['Unnamed: 12'].str.split(r"\" ", expand=True)
-    # excel_file_data['href'] = new_href[3]
-    # excel_file_data['href'] = 'https' + excel_file_data['Unnamed: 12']
-    # .str.split('https|tel|http', expand=True)[1].str.split("\" ",expand=True)[0]
-    # print(excel_file_data['href'].to_string())
-
-    # pattern = r'(?:|http[s]://)?\w+\.\S*[^.\s]'
-    # pattern = r'((?:#|tel|http)\S+)'
-    # pattern = r'((?:#|tel:|http)\S*<(?:\w)[^>]*>)'
 
 
 def compare(excel_file, html_file):
@@ -48,7 +37,6 @@ def compare(excel_file, html_file):
     excel_file_data['description'] = excel_file_data['Unnamed: 9'].str.replace("\"", "")
     excel_file_data['cat1'] = excel_file_data['Unnamed: 3'].str.replace("\"", "")
     excel_file_data['cat2'] = excel_file_data['Unnamed: 4'].str.replace("\"", "")
-    # excel_file_data['expected'] = excel_file_data['Unnamed: 12']
     excel_file_data.drop(columns=['Unnamed: 9', 'Unnamed: 3', 'Unnamed: 4'], inplace=True)
 
     pattern = r'(?:http)\S+(?:DI_EMAIL\s)\S+|(?:tel:|#|http|zet|tb)\S+'
@@ -85,7 +73,7 @@ def compare(excel_file, html_file):
                                     (df_result['href'].eq(df_result['href'].shift(-1)))), "True",
                                    np.where(df_result['from'].eq('expected'), "N/A", "False"))
 
-    df_final = pd.DataFrame(df_result, columns=['description', 'href', 'cat1', 'cat2', 'from', 'result'])
+    df_final = pd.DataFrame(df_result, columns=['description', 'cat1', 'cat2', 'href', 'from', 'result'])
 
     df_final = df_final.sort_values(['description'], ascending=[True])
     now = datetime.now()
