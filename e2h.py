@@ -31,6 +31,7 @@ def read_html(html_file):
 
 
 def compare(excel_file, html_file):
+
     excel_file_data = pd.read_excel(excel_file, sheet_name='FINAL', engine='openpyxl')
     pd.set_option('display.max_colwidth', 1000)
 
@@ -39,7 +40,8 @@ def compare(excel_file, html_file):
     excel_file_data['cat2'] = excel_file_data['Unnamed: 4'].str.replace("\"", "")
     excel_file_data.drop(columns=['Unnamed: 9', 'Unnamed: 3', 'Unnamed: 4'], inplace=True)
 
-    pattern = r'(?:http)\S+(?:DI_EMAIL\s)\S+|(?:tel:|#|http|zet|tb)\S+'
+    # pattern = r'(?:http)\S+(?:DI_EMAIL\s)\S+|(?:tel:|#|http|zet|tb|mailto)\S*'
+    pattern = r'(?:tbd|zet|mailto|tel|#|http)[://]?\S+[\s]?.*'
 
     t_df = pd.DataFrame(excel_file_data, columns=['description', 'Unnamed: 12'])
     href = t_df['Unnamed: 12'].apply(lambda x: re.findall(pattern, x, re.IGNORECASE)).str
@@ -66,7 +68,6 @@ def compare(excel_file, html_file):
         .drop_duplicates(['description', 'cat1', 'cat2', 'href'], keep=False)
 
     df_result = df_result.sort_values('description')
-
     df_result['result'] = np.where((df_result['description'].eq(df_result['description'].shift(-1)) &
                                     (df_result['cat1'].eq(df_result['cat1'].shift(-1))) &
                                     (df_result['cat2'].eq(df_result['cat2'].shift(-1))) &
@@ -74,7 +75,6 @@ def compare(excel_file, html_file):
                                    np.where(df_result['from'].eq('expected'), "N/A", "False"))
 
     df_final = pd.DataFrame(df_result, columns=['description', 'cat1', 'cat2', 'href', 'from', 'result'])
-
     df_final = df_final.sort_values(['description'], ascending=[True])
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
