@@ -41,7 +41,7 @@ def compare(excel_file, html_file):
     excel_file_data.drop(columns=['Unnamed: 9', 'Unnamed: 3', 'Unnamed: 4'], inplace=True)
 
     # pattern = r'(?:http)\S+(?:DI_EMAIL\s)\S+|(?:tel:|#|http|zet|tb|mailto)\S*'
-    pattern = r'(?:tbd|zet|mailto|tel|#|http)[://]?\S+[\s]?.*'
+    pattern = r'(?:tbd|zet|mailto|tel|#|www|http)[://]?\S+[\s]?.*'
 
     t_df = pd.DataFrame(excel_file_data, columns=['description', 'Unnamed: 12'])
     href = t_df['Unnamed: 12'].apply(lambda x: re.findall(pattern, x, re.IGNORECASE)).str
@@ -64,8 +64,7 @@ def compare(excel_file, html_file):
     excel_df = excel_df[~excel_df['href'].str.contains("Zeta")]
     excel_df = excel_df[~excel_df['href'].str.contains("tbd")]
 
-    df_result = pd.concat([excel_df, html_df]) \
-        .drop_duplicates(['description', 'cat1', 'cat2', 'href'], keep=False)
+    df_result = pd.concat([excel_df, html_df]).drop_duplicates(['description', 'cat1', 'cat2', 'href'], keep=False)
 
     df_result = df_result.sort_values('description')
     df_result['result'] = np.where((df_result['description'].eq(df_result['description'].shift(-1)) &
@@ -87,7 +86,7 @@ def compare(excel_file, html_file):
               f"{dt_string}\n"
     log_msg += f"Found {len(df_final[df_final['from'] == 'expected'])} " \
                f"discrepancies from {html_file_path}. Please see the output below.\n"
-    log_msg += df_final.to_string(index=None)
+    log_msg += df_final.to_string()
     log_msg += "\n=============================================================================================\n"
     print(log_msg)
 
