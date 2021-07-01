@@ -9,6 +9,7 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 from pathlib import Path
+from tabulate import tabulate
 
 html_file_path = ""
 
@@ -31,7 +32,6 @@ def read_html(html_file):
 
 
 def compare(excel_file, html_file):
-
     excel_file_data = pd.read_excel(excel_file, sheet_name='FINAL', engine='openpyxl')
     pd.set_option('display.max_colwidth', 1000)
 
@@ -57,24 +57,35 @@ def compare(excel_file, html_file):
     html_df['from'] = "actual"
     excel_df['from'] = "expected"
 
-    html_df = html_df[~html_df['href'].str.contains("Zeta")]
-    html_df = html_df[~html_df['href'].str.contains("tbd")]
-    html_df = html_df.drop_duplicates(keep="first")
+    try:
+        html_df = html_df[~html_df['href'].str.contains("Zeta")]
+        html_df = html_df[~html_df['href'].str.contains("tbd")]
+        html_df = html_df.drop_duplicates(keep="first")
 
-    excel_df = excel_df[~excel_df['href'].str.contains("Zeta")]
-    excel_df = excel_df[~excel_df['href'].str.contains("tbd")]
+        excel_df = excel_df[~excel_df['href'].str.contains("Zeta")]
+        excel_df = excel_df[~excel_df['href'].str.contains("tbd")]
+    except TypeError:
+        print()
 
+    excel_df.reset_index()
+    html_df.reset_index()
     df_result = pd.concat([excel_df, html_df]).drop_duplicates(['description', 'cat1', 'cat2', 'href'], keep=False)
 
-    df_result = df_result.sort_values('description')
+    df_success = pd.concat([excel_df, html_df])
+
+    df_success = df_success[df_success.duplicated(subset=['description', 'cat1', 'cat2', 'href'], keep=False)]
+    df_success = pd.DataFrame(df_success, columns=['from', 'description', 'cat1', 'cat2', 'href'])
+    df_success = df_success.sort_values('description')
+
+    # df_result = df_result.sort_values('description')
     df_result['result'] = np.where((df_result['description'].eq(df_result['description'].shift(-1)) &
                                     (df_result['cat1'].eq(df_result['cat1'].shift(-1))) &
                                     (df_result['cat2'].eq(df_result['cat2'].shift(-1))) &
                                     (df_result['href'].eq(df_result['href'].shift(-1)))), "True",
                                    np.where(df_result['from'].eq('expected'), "N/A", "False"))
 
-    df_final = pd.DataFrame(df_result, columns=['description', 'cat1', 'cat2', 'href', 'from', 'result'])
-    df_final = df_final.sort_values(['description'], ascending=[True])
+    df_final = pd.DataFrame(df_result, columns=['from', 'description', 'cat1', 'cat2', 'href', 'result'])
+    df_final = df_final.sort_values(['description'], ascending=[False])
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 
@@ -82,12 +93,14 @@ def compare(excel_file, html_file):
     filepath = Path(f'{os.getcwd()}/logs/{file.split(".")[0]}-{int(time.time())}.txt')
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    log_msg = f"\n============================================================================================\n" \
-              f"{dt_string}\n"
+    log_msg = f"{dt_string}\n"
     log_msg += f"Found {len(df_final[df_final['from'] == 'expected'])} " \
                f"discrepancies from {html_file_path}. Please see the output below.\n"
-    log_msg += df_final.to_string()
-    log_msg += "\n=============================================================================================\n"
+    log_msg += tabulate(df_final, showindex=False, headers=['From', 'Description', 'CAT1', 'CAT2', 'HREF', 'Result'])
+
+    log_msg += "\n----------------------------------------------------------------------------\n"
+    log_msg += f"\n Passed Rows: {len(df_success[df_success['from'] == 'expected'])} \n"
+    log_msg += tabulate(df_success, showindex=False, headers=['From', 'Description', 'CAT1', 'CAT2', 'HREF'])
     print(log_msg)
 
     with open(filepath, "w") as f:
