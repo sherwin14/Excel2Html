@@ -40,19 +40,21 @@ def compare(excel_file, html_file):
     excel_file_data['cat2'] = excel_file_data['Unnamed: 4'].str.replace("\"", "")
     excel_file_data.drop(columns=['Unnamed: 9', 'Unnamed: 3', 'Unnamed: 4'], inplace=True)
 
-    # pattern = r'(?:http)\S+(?:DI_EMAIL\s)\S+|(?:tel:|#|http|zet|tb|mailto)\S*'
+    # Extracting urls,email,tel in column 'Unnamed: 12'
     pattern = r'(?:tbd|zet|mailto|tel|#|www|http)[://]?\S+[\s]?.*'
-
     t_df = pd.DataFrame(excel_file_data, columns=['description', 'Unnamed: 12'])
     href = t_df['Unnamed: 12'].apply(lambda x: re.findall(pattern, x, re.IGNORECASE)).str
     excel_file_data['href'] = href[0]
 
     excel_df = pd.DataFrame(excel_file_data, columns=['description', 'cat1', 'cat2', 'href'])
     excel_df = excel_df.drop([0, 0])
+    excel_df = excel_df.sort_values('description')
 
     # html json to data frame
     j = json.loads(json.dumps(read_html(html_file)))
     html_df = pd.DataFrame(j, columns=['description', 'cat1', 'cat2', 'href'])
+    html_df = html_df.sort_values('description')
+    # , index=excel_df.index.copy())
 
     html_df['from'] = "actual"
     excel_df['from'] = "expected"
@@ -64,11 +66,10 @@ def compare(excel_file, html_file):
 
         excel_df = excel_df[~excel_df['href'].str.contains("Zeta")]
         excel_df = excel_df[~excel_df['href'].str.contains("tbd")]
+        excel_df = excel_df.drop_duplicates(keep="first")
     except TypeError:
         print()
 
-    excel_df.reset_index()
-    html_df.reset_index()
     df_result = pd.concat([excel_df, html_df]).drop_duplicates(['description', 'cat1', 'cat2', 'href'], keep=False)
 
     df_success = pd.concat([excel_df, html_df])
